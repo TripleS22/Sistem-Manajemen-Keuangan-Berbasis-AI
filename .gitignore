@@ -28,3 +28,6 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Dokumen markdown tidak di-push (file .md yang sudah ter-track tetap ter-track)
+*.md

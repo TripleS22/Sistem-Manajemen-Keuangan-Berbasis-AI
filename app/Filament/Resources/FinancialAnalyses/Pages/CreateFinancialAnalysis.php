@@ -6,7 +6,7 @@ use App\Filament\Resources\FinancialAnalyses\FinancialAnalysisResource;
 use App\Models\AnalysisExplanation;
 use App\Models\BusinessProfile;
 use App\Models\FinancialAnalysis;
-use App\Services\AI\GeminiExplanationService;
+use App\Services\AI\AiExplanationService;
 use App\Services\ML\FinancialDecisionTreeService;
 use Carbon\Carbon;
 use Filament\Notifications\Notification;
@@ -21,18 +21,11 @@ class CreateFinancialAnalysis extends CreateRecord
 
     protected function handleRecordCreation(array $data): Model
     {
-        $userId = auth()->id();
+        $userId = \App\Support\TenantContext::getActiveTenantId() ?? auth()->id();
         $start = Carbon::parse($data['period_start'])->startOfDay();
         $end = Carbon::parse($data['period_end'])->endOfDay();
 
-        $profile = BusinessProfile::firstOrCreate(
-            ['user_id' => $userId],
-            [
-                'business_name' => auth()->user()->name.' Business',
-                'business_type' => 'UMKM',
-                'initial_capital' => 0,
-            ]
-        );
+        $profile = \App\Support\TenantContext::getActiveBusinessProfile();
 
         $mlService = app(FinancialDecisionTreeService::class);
         $features = $mlService->extractFeatures($userId, $start, $end);
@@ -40,8 +33,8 @@ class CreateFinancialAnalysis extends CreateRecord
         // Klasifikasi kondisi keuangan dengan model Decision Tree
         $mlResult = $mlService->predict($features);
 
-        // Ekstraksi penjelasan dan rekomendasi dari LLM (Gemini API)
-        $aiService = app(GeminiExplanationService::class);
+        // Ekstraksi penjelasan dan rekomendasi dari LLM (Groq / Gemini)
+        $aiService = app(AiExplanationService::class);
         $llmResult = $aiService->explain($profile, $features, $mlResult);
 
         // Simpan hasil analisis finansial
@@ -58,7 +51,7 @@ class CreateFinancialAnalysis extends CreateRecord
             'prediction_label' => $mlResult['prediction'],
             'confidence_score' => $mlResult['confidence'],
             'key_factors' => $mlResult['key_factors'],
-            'model_version' => '1.0.0 (Decision Tree)',
+            'model_version' => FinancialDecisionTreeService::MODEL_VERSION,
         ]);
 
         // Simpan narasi penjelasan dan rekomendasi

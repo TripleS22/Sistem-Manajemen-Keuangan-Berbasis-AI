@@ -3,35 +3,48 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Transaction;
-use Carbon\Carbon;
+use App\Support\DashboardPeriod;
 use Filament\Widgets\ChartWidget;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 
 class CashFlowChartWidget extends ChartWidget
 {
-    protected ?string $heading = 'Grafik Arus Kas 6 Bulan Terakhir';
+    use InteractsWithPageFilters;
+
+    protected static ?bool $isLazyLoaded = false;
+
+    protected ?string $heading = 'Grafik Arus Kas';
 
     protected static ?int $sort = 2;
 
     protected function getData(): array
     {
-        $userId = auth()->id();
+        $userId = \App\Support\TenantContext::getActiveTenantId() ?? auth()->id();
         $labels = [];
         $incomeData = [];
         $expenseData = [];
 
-        for ($i = 5; $i >= 0; $i--) {
-            $month = Carbon::now()->subMonths($i);
+        // Untuk periode setahun, tampilkan 12 bulan kalender tahun berjalan;
+        // untuk periode lainnya, tampilkan jendela 6 bulan yang berakhir pada bulan periode terpilih.
+        $period = DashboardPeriod::resolve($this->pageFilters['period'] ?? 'this_month');
+        $endMonth = $period['end']->copy()->startOfMonth();
+        $monthCount = ($this->pageFilters['period'] ?? 'this_month') === 'this_year' ? 12 : 6;
+
+        for ($i = $monthCount - 1; $i >= 0; $i--) {
+            $month = $endMonth->copy()->subMonths($i);
             $start = $month->copy()->startOfMonth();
             $end = $month->copy()->endOfMonth();
 
-            $labels[] = $month->translatedFormat('M Y');
+            $labels[] = $month->translatedFormat($monthCount > 6 ? 'M' : 'M Y');
 
-            $income = (float) Transaction::where('user_id', $userId)
+            $income = (float) Transaction::query()
+                ->where('user_id', $userId)
                 ->where('type', 'income')
                 ->whereBetween('transaction_date', [$start, $end])
                 ->sum('amount');
 
-            $expense = (float) Transaction::where('user_id', $userId)
+            $expense = (float) Transaction::query()
+                ->where('user_id', $userId)
                 ->where('type', 'expense')
                 ->whereBetween('transaction_date', [$start, $end])
                 ->sum('amount');

@@ -15,7 +15,7 @@ class TransactionCategoryForm
         return $schema
             ->components([
                 Hidden::make('user_id')
-                    ->default(fn () => auth()->id()),
+                    ->default(fn () => \App\Support\TenantContext::getActiveTenantId() ?? auth()->id()),
                 TextInput::make('name')
                     ->label('Nama Kategori')
                     ->placeholder('Contoh: Penjualan Produk, Bahan Baku')

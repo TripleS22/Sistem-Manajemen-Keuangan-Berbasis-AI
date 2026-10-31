@@ -22,6 +22,22 @@ class User extends Authenticatable implements FilamentUser
     use HasFactory, Notifiable;
 
     /**
+     * Check if the user has admin role.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Check if the user has owner role.
+     */
+    public function isOwner(): bool
+    {
+        return $this->role === 'owner';
+    }
+
+    /**
      * Determine if user can access the given Filament panel.
      */
     public function canAccessPanel(Panel $panel): bool

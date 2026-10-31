@@ -16,7 +16,7 @@ class TransactionForm
         return $schema
             ->components([
                 Hidden::make('user_id')
-                    ->default(fn () => auth()->id()),
+                    ->default(fn () => \App\Support\TenantContext::getActiveTenantId() ?? auth()->id()),
                 Select::make('type')
                     ->label('Jenis Transaksi')
                     ->options([
@@ -32,7 +32,7 @@ class TransactionForm
                         name: 'category',
                         titleAttribute: 'name',
                         modifyQueryUsing: fn ($query, $get) => $query
-                            ->where('user_id', auth()->id())
+                            ->where('user_id', \App\Support\TenantContext::getActiveTenantId() ?? auth()->id())
                             ->when($get('type'), fn ($q, $type) => $q->where('type', $type))
                     )
                     ->searchable()
@@ -40,7 +40,7 @@ class TransactionForm
                     ->required()
                     ->createOptionForm([
                         Hidden::make('user_id')
-                            ->default(fn () => auth()->id()),
+                            ->default(fn () => \App\Support\TenantContext::getActiveTenantId() ?? auth()->id()),
                         TextInput::make('name')
                             ->label('Nama Kategori')
                             ->required(),

@@ -13,18 +13,29 @@ class BusinessProfileSeeder extends Seeder
      */
     public function run(): void
     {
-        $user = User::where('email', 'admin@umkm.com')->firstOrFail();
+        // Pastikan akun admin tidak memiliki profil toko palsu
+        BusinessProfile::whereIn('user_id', User::where('role', 'admin')->pluck('id'))->delete();
 
-        BusinessProfile::firstOrCreate(
-            ['user_id' => $user->id],
-            [
-                'business_name' => 'Kedai Kopi & Kuliner Berkah Nusantara',
-                'business_type' => 'Kuliner & F&B',
-                'description' => 'Usaha kuliner kopi artisan dan makanan ringan lokal khas nusantara. Melayani pelanggan walk-in dan pesanan katering.',
-                'initial_capital' => 25_000_000,
-                'phone' => '081234567890',
-                'address' => 'Jl. Merdeka No. 45, Jakarta Selatan',
-            ]
-        );
+        $owners = User::where('role', 'owner')->get();
+
+        foreach ($owners as $user) {
+            BusinessProfile::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'business_name' => $user->email === 'admin@umkm.com'
+                        ? 'Kedai Kopi & Kuliner Berkah Nusantara'
+                        : 'Toko Berkah Jaya '.$user->name,
+                    'business_type' => $user->email === 'admin@umkm.com'
+                        ? 'Kuliner & F&B'
+                        : 'Retail & Perdagangan',
+                    'description' => $user->email === 'admin@umkm.com'
+                        ? 'Usaha kuliner kopi artisan dan makanan ringan lokal khas nusantara. Melayani pelanggan walk-in dan pesanan katering.'
+                        : 'Usaha perdagangan retail kebutuhan harian, sembako, dan aneka perlengkapan rumah tangga dengan pelayanan prima.',
+                    'initial_capital' => 25_000_000,
+                    'phone' => '081234567890',
+                    'address' => 'Jl. Merdeka No. 45, Jakarta Selatan',
+                ]
+            );
+        }
     }
 }

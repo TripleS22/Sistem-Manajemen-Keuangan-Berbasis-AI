@@ -41,7 +41,7 @@ class FinancialAnalysisFactory extends Factory
             'prediction_label' => $prediction,
             'confidence_score' => $this->faker->randomFloat(4, 0.70, 0.99),
             'key_factors' => ['Arus kas positif', 'Rasio pengeluaran efisien'],
-            'model_version' => '1.0.0 (Decision Tree)',
+            'model_version' => \App\Services\ML\FinancialDecisionTreeService::MODEL_VERSION,
         ];
     }
 

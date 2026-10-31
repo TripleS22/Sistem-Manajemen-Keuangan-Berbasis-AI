@@ -67,7 +67,7 @@ class TransactionsTable
                     ]),
                 SelectFilter::make('transaction_category_id')
                     ->label('Kategori')
-                    ->relationship('category', 'name', fn (Builder $query) => $query->where('user_id', auth()->id())),
+                    ->relationship('category', 'name', fn (Builder $query) => $query->when(! auth()->user()?->isAdmin(), fn ($q) => $q->where('user_id', auth()->id()))),
                 Filter::make('transaction_date')
                     ->label('Rentang Tanggal')
                     ->form([

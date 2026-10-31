@@ -16,6 +16,20 @@ use Rubix\ML\Serializers\Native;
 
 class FinancialDecisionTreeService
 {
+    public const MODEL_VERSION = '1.1.0 (Decision Tree)';
+
+    // Hyperparameter dipilih lewat stratified 5-fold cross validation
+    public const MAX_HEIGHT = 10;
+
+    public const MAX_LEAF_SIZE = 5;
+
+    public const MIN_PURITY_INCREASE = 1e-4;
+
+    public const TRAINING_SAMPLES = 5000;
+
+    // Additive smoothing probabilitas daun agar confidence tidak overconfident (100%)
+    public const PROBABILITY_SMOOTHING = 0.02;
+
     protected string $modelPath;
 
     public function __construct(
@@ -35,7 +49,7 @@ class FinancialDecisionTreeService
      *     test_samples_count: int
      * }
      */
-    public function train(int $sampleCount = 1500, float $testSplit = 0.2): array
+    public function train(int $sampleCount = self::TRAINING_SAMPLES, float $testSplit = 0.2): array
     {
         $dir = dirname($this->modelPath);
         if (! is_dir($dir)) {
@@ -45,12 +59,12 @@ class FinancialDecisionTreeService
         $generated = $this->datasetGenerator->generate($sampleCount);
         $dataset = new Labeled($generated['samples'], $generated['labels']);
 
-        // Split into training (80%) and testing (20%) sets
-        [$training, $testing] = $dataset->split(1.0 - $testSplit);
+        // Stratified split: training (80%) dan testing (20%) dengan proporsi kelas yang sama
+        [$training, $testing] = $dataset->randomize()->stratifiedSplit(1.0 - $testSplit);
 
         // Inisialisasi Decision Tree Classifier
-        // Max height = 10, max leaf size = 3 untuk mencegah overfitting
-        $tree = new ClassificationTree(10, 3, 1e-4);
+        // Max height = 10, max leaf size = 5 untuk mencegah overfitting
+        $tree = new ClassificationTree(self::MAX_HEIGHT, self::MAX_LEAF_SIZE, self::MIN_PURITY_INCREASE);
         $estimator = new PersistentModel(
             $tree,
             new Filesystem($this->modelPath),
@@ -111,15 +125,17 @@ class FinancialDecisionTreeService
      *     cash_flow_trend: float
      * }
      */
-    public function extractFeatures(int $userId, Carbon $periodStart, Carbon $periodEnd): array
+    public function extractFeatures(?int $userId, Carbon $periodStart, Carbon $periodEnd): array
     {
+        $baseQuery = fn () => Transaction::query()->when($userId !== null, fn ($q) => $q->where('user_id', $userId));
+
         // Periode saat ini
-        $income = (float) Transaction::where('user_id', $userId)
+        $income = (float) $baseQuery()
             ->where('type', 'income')
             ->whereBetween('transaction_date', [$periodStart, $periodEnd])
             ->sum('amount');
 
-        $expense = (float) Transaction::where('user_id', $userId)
+        $expense = (float) $baseQuery()
             ->where('type', 'expense')
             ->whereBetween('transaction_date', [$periodStart, $periodEnd])
             ->sum('amount');
@@ -132,12 +148,12 @@ class FinancialDecisionTreeService
         $previousStart = $periodStart->copy()->subDays($durationInDays);
         $previousEnd = $periodStart->copy()->subDay();
 
-        $prevIncome = (float) Transaction::where('user_id', $userId)
+        $prevIncome = (float) $baseQuery()
             ->where('type', 'income')
             ->whereBetween('transaction_date', [$previousStart, $previousEnd])
             ->sum('amount');
 
-        $prevExpense = (float) Transaction::where('user_id', $userId)
+        $prevExpense = (float) $baseQuery()
             ->where('type', 'expense')
             ->whereBetween('transaction_date', [$previousStart, $previousEnd])
             ->sum('amount');
@@ -193,7 +209,7 @@ class FinancialDecisionTreeService
         $prediction = $predictions[0];
 
         $probabilitiesList = $estimator->proba($unlabeled);
-        $probabilities = $probabilitiesList[0];
+        $probabilities = $this->smoothProbabilities($probabilitiesList[0]);
 
         $confidence = isset($probabilities[$prediction]) ? (float) $probabilities[$prediction] : 0.90;
 
@@ -206,6 +222,23 @@ class FinancialDecisionTreeService
             'confidence' => round($confidence, 4),
             'key_factors' => $keyFactors,
         ];
+    }
+
+    /**
+     * Apply additive smoothing to leaf probabilities: p' = (1 - ε) · p + ε / K.
+     * Urutan kelas (dan hasil prediksi) tidak berubah, hanya confidence yang dikalibrasi.
+     *
+     * @param  array<string, float>  $probabilities
+     * @return array<string, float>
+     */
+    public function smoothProbabilities(array $probabilities): array
+    {
+        $classCount = count($probabilities);
+
+        return array_map(
+            fn (float $p) => (1 - self::PROBABILITY_SMOOTHING) * $p + self::PROBABILITY_SMOOTHING / $classCount,
+            $probabilities
+        );
     }
 
     /**

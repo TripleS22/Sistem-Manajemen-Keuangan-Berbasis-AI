@@ -16,20 +16,7 @@ class TransactionSeeder extends Seeder
      */
     public function run(): void
     {
-        $user = User::where('email', 'admin@umkm.com')->firstOrFail();
-
-        // Skip jika sudah ada data transaksi
-        if (Transaction::where('user_id', $user->id)->exists()) {
-            $this->command->info('Transaksi sudah ada, dilewati.');
-
-            return;
-        }
-
-        /** @var array<string, TransactionCategory> $categories */
-        $categories = TransactionCategory::where('user_id', $user->id)
-            ->get()
-            ->keyBy('name');
-
+        $users = User::all();
         $now = Carbon::now();
 
         /**
@@ -104,26 +91,37 @@ class TransactionSeeder extends Seeder
             ],
         ];
 
-        foreach ($monthlyData as $monthsAgo => $transactions) {
-            $baseDate = $now->copy()->subMonths($monthsAgo);
+        foreach ($users as $user) {
+            if (Transaction::where('user_id', $user->id)->count() >= 10) {
+                continue;
+            }
 
-            foreach ($transactions as $index => $trx) {
-                if (! isset($categories[$trx['cat']])) {
-                    continue;
+            /** @var array<string, TransactionCategory> $categories */
+            $categories = TransactionCategory::where('user_id', $user->id)
+                ->get()
+                ->keyBy('name');
+
+            foreach ($monthlyData as $monthsAgo => $transactions) {
+                $baseDate = $now->copy()->subMonths($monthsAgo);
+
+                foreach ($transactions as $index => $trx) {
+                    if (! isset($categories[$trx['cat']])) {
+                        continue;
+                    }
+
+                    // Sebar tanggal transaksi secara acak dalam bulan itu
+                    $day = random_int(1, min(28, $baseDate->daysInMonth));
+                    $transactionDate = $baseDate->copy()->day($day);
+
+                    Transaction::create([
+                        'user_id' => $user->id,
+                        'transaction_category_id' => $categories[$trx['cat']]->id,
+                        'type' => $trx['type'],
+                        'amount' => $trx['amount'],
+                        'transaction_date' => $transactionDate->format('Y-m-d'),
+                        'description' => $trx['desc'],
+                    ]);
                 }
-
-                // Sebar tanggal transaksi secara acak dalam bulan itu
-                $day = random_int(1, min(28, $baseDate->daysInMonth));
-                $transactionDate = $baseDate->copy()->day($day);
-
-                Transaction::create([
-                    'user_id' => $user->id,
-                    'transaction_category_id' => $categories[$trx['cat']]->id,
-                    'type' => $trx['type'],
-                    'amount' => $trx['amount'],
-                    'transaction_date' => $transactionDate->format('Y-m-d'),
-                    'description' => $trx['desc'],
-                ]);
             }
         }
     }

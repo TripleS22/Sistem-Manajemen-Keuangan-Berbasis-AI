@@ -4,33 +4,42 @@ namespace App\Filament\Widgets;
 
 use App\Models\FinancialAnalysis;
 use App\Models\Transaction;
-use Carbon\Carbon;
+use App\Support\DashboardPeriod;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class FinancialOverviewWidget extends BaseWidget
 {
+    use InteractsWithPageFilters;
+
+    protected static ?bool $isLazyLoaded = false;
+
     protected static ?int $sort = 1;
 
     protected function getStats(): array
     {
-        $userId = auth()->id();
-        $startOfMonth = Carbon::now()->startOfMonth();
-        $endOfMonth = Carbon::now()->endOfMonth();
+        $userId = \App\Support\TenantContext::getActiveTenantId() ?? auth()->id();
 
-        $monthlyIncome = (float) Transaction::where('user_id', $userId)
+        $period = DashboardPeriod::resolve($this->pageFilters['period'] ?? 'this_month');
+        [$start, $end] = [$period['start'], $period['end']];
+
+        $txQuery = Transaction::query()->where('user_id', $userId);
+
+        $income = (float) (clone $txQuery)
             ->where('type', 'income')
-            ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
+            ->whereBetween('transaction_date', [$start, $end])
             ->sum('amount');
 
-        $monthlyExpense = (float) Transaction::where('user_id', $userId)
+        $expense = (float) (clone $txQuery)
             ->where('type', 'expense')
-            ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
+            ->whereBetween('transaction_date', [$start, $end])
             ->sum('amount');
 
-        $netCashFlow = $monthlyIncome - $monthlyExpense;
+        $netCashFlow = $income - $expense;
 
-        $latestAnalysis = FinancialAnalysis::where('user_id', $userId)
+        $latestAnalysis = FinancialAnalysis::query()
+            ->where('user_id', $userId)
             ->latest()
             ->first();
 
@@ -43,13 +52,13 @@ class FinancialOverviewWidget extends BaseWidget
         };
 
         return [
-            Stat::make('Pemasukan Bulan Ini', 'Rp '.number_format($monthlyIncome, 0, ',', '.'))
-                ->description($startOfMonth->format('d M').' - '.$endOfMonth->format('d M Y'))
+            Stat::make('Total Pemasukan', 'Rp '.number_format($income, 0, ',', '.'))
+                ->description($period['label'])
                 ->descriptionIcon('heroicon-m-arrow-trending-up')
                 ->color('success'),
 
-            Stat::make('Pengeluaran Bulan Ini', 'Rp '.number_format($monthlyExpense, 0, ',', '.'))
-                ->description($startOfMonth->format('d M').' - '.$endOfMonth->format('d M Y'))
+            Stat::make('Total Pengeluaran', 'Rp '.number_format($expense, 0, ',', '.'))
+                ->description($period['label'])
                 ->descriptionIcon('heroicon-m-arrow-trending-down')
                 ->color('danger'),
 

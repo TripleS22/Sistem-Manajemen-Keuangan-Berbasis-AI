@@ -2,9 +2,10 @@
 
 namespace App\Filament\Resources\FinancialAnalyses\Schemas;
 
-use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\TextSize;
 
 class FinancialAnalysisInfolist
 {
@@ -26,7 +27,7 @@ class FinancialAnalysisInfolist
                                 'Berisiko' => 'danger',
                                 default => 'gray',
                             })
-                            ->size(TextEntry\TextEntrySize::Large),
+                            ->size(TextSize::Large),
 
                         TextEntry::make('confidence_score')
                             ->label('Tingkat Kepercayaan Model')
@@ -104,21 +105,23 @@ class FinancialAnalysisInfolist
                     ]),
 
                 Section::make('Penjelasan & Rekomendasi AI')
-                    ->description('Interpretasi hasil analisis oleh Gemini AI — bukan perhitungan ulang, hanya penjelasan')
+                    ->description('Interpretasi naratif dan rekomendasi hasil analisis oleh LLM AI (Groq / Gemini) tanpa mengubah data sumber')
                     ->icon('heroicon-o-chat-bubble-left-ellipsis')
                     ->relationship('explanation')
                     ->schema([
                         TextEntry::make('provider')
                             ->label('Penyedia AI')
                             ->badge()
-                            ->formatStateUsing(fn (string $state): string => match ($state) {
-                                'gemini' => 'Gemini AI',
-                                'rule_based_fallback' => 'Aturan Otomatis (Fallback)',
+                            ->formatStateUsing(fn (string $state): string => match (true) {
+                                $state === 'groq' || str_starts_with($state, 'groq') => 'Groq AI (Llama 3.3)',
+                                $state === 'gemini' || str_starts_with($state, 'gemini') => 'Gemini AI',
+                                str_starts_with($state, 'rule') => 'Aturan Otomatis (Fallback)',
                                 default => $state,
                             })
-                            ->color(fn (string $state): string => match ($state) {
-                                'gemini' => 'info',
-                                'rule_based_fallback' => 'warning',
+                            ->color(fn (string $state): string => match (true) {
+                                $state === 'groq' || str_starts_with($state, 'groq') => 'success',
+                                $state === 'gemini' || str_starts_with($state, 'gemini') => 'info',
+                                str_starts_with($state, 'rule') => 'warning',
                                 default => 'gray',
                             }),
 
@@ -126,7 +129,7 @@ class FinancialAnalysisInfolist
                             ->label('Status Permintaan')
                             ->badge()
                             ->color(fn (string $state): string => match ($state) {
-                                'success' => 'success',
+                                'success', 'completed' => 'success',
                                 'fallback' => 'warning',
                                 'error' => 'danger',
                                 default => 'gray',

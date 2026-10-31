@@ -12,7 +12,7 @@ class TrainDecisionTreeCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'ml:train-decision-tree {--samples=1500 : Number of training samples}';
+    protected $signature = 'ml:train-decision-tree {--samples=5000 : Number of training samples}';
 
     /**
      * The console command description.
@@ -53,7 +53,7 @@ class TrainDecisionTreeCommand extends Command
                 $cls,
                 isset($classReport['precision']) ? round($classReport['precision'] * 100, 2).'%' : 'N/A',
                 isset($classReport['recall']) ? round($classReport['recall'] * 100, 2).'%' : 'N/A',
-                isset($classReport['f1_score']) ? round($classReport['f1_score'] * 100, 2).'%' : 'N/A',
+                isset($classReport['f1 score']) ? round($classReport['f1 score'] * 100, 2).'%' : 'N/A',
                 $classReport['cardinality'] ?? '—',
             ];
         }

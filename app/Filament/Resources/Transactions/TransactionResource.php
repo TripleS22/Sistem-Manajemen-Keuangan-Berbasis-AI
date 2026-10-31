@@ -14,25 +14,63 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
+use YacoubAlhaidari\FilamentTour\Concerns\HasTourSteps;
 
 class TransactionResource extends Resource
 {
+    use HasTourSteps;
+
+    public static function getTourStepId(): ?string
+    {
+        return 'transactions';
+    }
+
+    public static function getTourStepTitle(): ?string
+    {
+        return 'Pencatatan Transaksi Harian';
+    }
+
+    public static function getTourStepDescription(): ?string
+    {
+        return 'Catat setiap arus kas masuk dan keluar harian yang terjadi dalam aktivitas bisnis UMKM Anda.';
+    }
+
+    public static function getTourStepFeatures(): array
+    {
+        return [
+            'Tambah transaksi pemasukan atau pengeluaran secara cepat',
+            'Tentukan tanggal, kategori, dan rincian deskripsi transaksi',
+            'Filter dan cari riwayat transaksi secara terperinci',
+        ];
+    }
+
+    public static function getTourStepSort(): int
+    {
+        return 40;
+    }
+
     protected static ?string $model = Transaction::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 
     protected static ?string $navigationLabel = 'Transaksi';
 
+    protected static string|UnitEnum|null $navigationGroup = 'Manajemen Transaksi';
+
     protected static ?string $modelLabel = 'Transaksi';
 
     protected static ?string $pluralModelLabel = 'Daftar Transaksi';
 
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 1;
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
-            ->where('user_id', auth()->id());
+        $query = parent::getEloquentQuery();
+
+        $tenantId = \App\Support\TenantContext::getActiveTenantId();
+
+        return $query->where('user_id', $tenantId);
     }
 
     public static function form(Schema $schema): Schema

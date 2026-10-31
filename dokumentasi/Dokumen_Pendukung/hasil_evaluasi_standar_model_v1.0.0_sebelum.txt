@@ -1,0 +1,113 @@
+======================================================================================
+EVALUASI STANDAR MODEL DECISION TREE - KLASIFIKASI KESEHATAN KEUANGAN UMKM
+Waktu: 2026-10-31 09:07:09 | PHP 8.5.11 | Rubix ML ClassificationTree(maxHeight=10, maxLeafSize=3, minPurityIncrease=1e-4)
+Seed data uji = 2026, seed cross validation = 42
+======================================================================================
+
+[1] HOLD-OUT TEST SET INDEPENDEN - model produksi (storage/app/ml/decision_tree.model), n = 3000
+  Distribusi kelas: Sehat = 432, Perlu perhatian = 905, Berisiko = 1663
+  Baseline (selalu tebak kelas mayoritas): accuracy 55.43%
+
+  Confusion Matrix:
+  Aktual \ Prediksi           Sehat  Perlu perhatian   Berisiko    Total
+  Sehat                         394               30          8      432
+  Perlu perhatian                77              785         43      905
+  Berisiko                        8               43       1612     1663
+  Dinormalisasi per baris (recall):
+  Sehat                       91.2%             6.9%       1.9%
+  Perlu perhatian              8.5%            86.7%       4.8%
+  Berisiko                     0.5%             2.6%      96.9%
+
+  Classification Report:
+  Kelas               Precision     Recall  Specificity   F1-Score  Support
+  Sehat                  82.25%     91.20%       96.69%     86.50%      432
+  Perlu perhatian        91.49%     86.74%       96.52%     89.05%      905
+  Berisiko               96.93%     96.93%       96.19%     96.93%     1663
+  Macro avg              90.23%     91.63%                  90.83%     3000
+  Weighted avg           93.18%     93.03%                  93.05%     3000
+
+  Accuracy            :  93.03%  (95% CI Wilson: 92.07% - 93.89%)
+  Balanced accuracy   :  91.63%
+  Cohen's Kappa       : 0.8806
+  MCC (multikelas)    : 0.8810
+
+======================================================================================
+[2] STRATIFIED 10-FOLD CROSS VALIDATION (n = 1500, hyperparameter sama dengan model produksi)
+  Fold     Train     Test   Accuracy   Macro F1    Kappa      MCC
+  1         1350      150     95.33%     94.51%   0.9217   0.9226
+  2         1350      150     90.00%     87.71%   0.8295   0.8298
+  3         1350      150     88.67%     86.83%   0.8099   0.8112
+  4         1350      150     90.00%     86.55%   0.8304   0.8308
+  5         1350      150     98.00%     98.35%   0.9664   0.9665
+  6         1350      150     92.00%     87.59%   0.8668   0.8677
+  7         1350      150     90.67%     87.30%   0.8430   0.8432
+  8         1350      150     98.00%     98.34%   0.9663   0.9664
+  9         1350      150     92.67%     92.10%   0.8774   0.8776
+  10        1350      150     91.33%     87.23%   0.8562   0.8609
+  Rata-rata Accuracy (mean +/- std) : 0.9267 +/- 0.0334
+  Rata-rata Macro F1 (mean +/- std) : 0.9065 +/- 0.0481
+  Rata-rata Kappa (mean +/- std) : 0.8768 +/- 0.0564
+  Rata-rata MCC (mean +/- std) : 0.8777 +/- 0.0560
+  Akurasi data latih rata-rata : 97.29%  vs  data uji 92.67%  -> selisih (gap overfitting) 4.62%
+
+  Confusion Matrix gabungan (out-of-fold, seluruh 1500 sampel):
+  Aktual \ Prediksi           Sehat  Perlu perhatian   Berisiko    Total
+  Sehat                         191               23          5      219
+  Perlu perhatian                32              437         19      488
+  Berisiko                        4               27        762      793
+  Dinormalisasi per baris (recall):
+  Sehat                       87.2%            10.5%       2.3%
+  Perlu perhatian              6.6%            89.5%       3.9%
+  Berisiko                     0.5%             3.4%      96.1%
+
+  Classification Report gabungan:
+  Kelas               Precision     Recall  Specificity   F1-Score  Support
+  Sehat                  84.14%     87.21%       97.19%     85.65%      219
+  Perlu perhatian        89.73%     89.55%       95.06%     89.64%      488
+  Berisiko               96.95%     96.09%       96.61%     96.52%      793
+  Macro avg              90.27%     90.95%                  90.60%     1500
+  Weighted avg           92.73%     92.67%                  92.69%     1500
+
+  Accuracy            :  92.67%  (95% CI Wilson: 91.24% - 93.88%)
+  Balanced accuracy   :  90.95%
+  Cohen's Kappa       : 0.8768
+  MCC (multikelas)    : 0.8768
+
+======================================================================================
+[3] UJI CONFIDENCE SCORE (probabilitas) - DISKRIMINASI & KALIBRASI
+
+  Model produksi (hold-out n=3000)
+  ROC-AUC one-vs-rest : Sehat 0.9576 | Perlu perhatian 0.9476 | Berisiko 0.9746 | macro 0.9599
+  Log loss            : 1.4554   (semakin kecil semakin baik)
+  Brier score         : 0.1303   (0 = sempurna, multikelas: rentang 0-2)
+  ECE (10 bin)        : 0.0579   (selisih confidence vs akurasi aktual)
+  Rata-rata confidence: 97.05% | saat prediksi benar 97.75% | saat salah 87.76% (209 prediksi salah)
+  Prediksi dengan confidence 100%: 86.73%
+  Reliability table:
+    Bin conf       Jumlah Rata2 confidence   Akurasi aktual    Selisih
+    (0.3-0.4]          16           33.33%           25.00%      8.33%
+    (0.4-0.5]          53           50.00%           79.25%    -29.25%
+    (0.5-0.6]          24           60.00%           95.83%    -35.83%
+    (0.6-0.7]          40           66.67%           57.50%      9.17%
+    (0.7-0.8]          10           75.00%          100.00%    -25.00%
+    (0.8-0.9]          88           85.71%           72.73%     12.99%
+    (0.9-1.0]        2769           99.52%           94.80%      4.72%
+
+  Cross validation out-of-fold (n=1500)
+  ROC-AUC one-vs-rest : Sehat 0.9469 | Perlu perhatian 0.9535 | Berisiko 0.9781 | macro 0.9595
+  Log loss            : 1.4879   (semakin kecil semakin baik)
+  Brier score         : 0.1230   (0 = sempurna, multikelas: rentang 0-2)
+  ECE (10 bin)        : 0.0500   (selisih confidence vs akurasi aktual)
+  Rata-rata confidence: 97.46% | saat prediksi benar 98.47% | saat salah 84.67% (110 prediksi salah)
+  Prediksi dengan confidence 100%: 91.47%
+  Reliability table:
+    Bin conf       Jumlah Rata2 confidence   Akurasi aktual    Selisih
+    (0.4-0.5]          21           50.00%           57.14%     -7.14%
+    (0.5-0.6]           9           56.88%           55.56%      1.33%
+    (0.6-0.7]          50           66.44%           54.00%     12.44%
+    (0.7-0.8]           9           76.25%           33.33%     42.91%
+    (0.8-0.9]          23           83.42%           60.87%     22.55%
+    (0.9-1.0]        1388           99.93%           95.75%      4.18%
+
+======================================================================================
+SELESAI

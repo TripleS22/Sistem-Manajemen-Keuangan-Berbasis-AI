@@ -23,7 +23,6 @@ class TransactionCategoryFactory extends Factory
             'name' => $this->faker->randomElement(['Penjualan', 'Jasa', 'Gaji', 'Sewa', 'Utilitas', 'Bahan Baku', 'Pemasaran']),
             'type' => $this->faker->randomElement(['income', 'expense']),
             'color' => $this->faker->hexColor(),
-            'is_active' => true,
         ];
     }
 

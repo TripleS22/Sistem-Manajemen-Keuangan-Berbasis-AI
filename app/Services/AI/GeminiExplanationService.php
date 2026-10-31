@@ -30,6 +30,7 @@ class GeminiExplanationService
             $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
             $response = Http::timeout(25)
+                ->withoutVerifying()
                 ->withHeaders([
                     'Content-Type' => 'application/json',
                 ])

@@ -9,10 +9,20 @@ use Illuminate\Support\Facades\Hash;
 class UserSeeder extends Seeder
 {
     /**
-     * Seed akun demo pemilik UMKM.
+     * Seed akun demo admin dan pemilik UMKM.
      */
     public function run(): void
     {
+        User::firstOrCreate(
+            ['email' => 'superadmin@umkm.com'],
+            [
+                'name' => 'Super Admin',
+                'password' => Hash::make('password'),
+                'role' => 'admin',
+                'email_verified_at' => now(),
+            ]
+        );
+
         User::firstOrCreate(
             ['email' => 'admin@umkm.com'],
             [

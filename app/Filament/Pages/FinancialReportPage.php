@@ -9,16 +9,51 @@ use Carbon\Carbon;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use UnitEnum;
+use YacoubAlhaidari\FilamentTour\Concerns\HasTourSteps;
 
 class FinancialReportPage extends Page
 {
+    use HasTourSteps;
+
+    public static function getTourStepId(): ?string
+    {
+        return 'financial-report';
+    }
+
+    public static function getTourStepTitle(): ?string
+    {
+        return 'Laporan Keuangan & Cetak PDF';
+    }
+
+    public static function getTourStepDescription(): ?string
+    {
+        return 'Tinjau performa keuangan berkala (Laba Rugi & Arus Kas) serta cetak laporan resmi usaha.';
+    }
+
+    public static function getTourStepFeatures(): array
+    {
+        return [
+            'Filter periode laporan bulanan, tahunan, atau rentang tanggal kustom',
+            'Rekapitulasi Laba/Rugi bersih dan rincian per kategori transaksi',
+            'Cetak dokumen laporan keuangan resmi siap cetak / simpan ke format PDF',
+        ];
+    }
+
+    public static function getTourStepSort(): int
+    {
+        return 60;
+    }
+
     protected static ?string $title = 'Laporan Keuangan';
 
     protected static ?string $navigationLabel = 'Laporan Keuangan';
 
+    protected static string|UnitEnum|null $navigationGroup = 'Laporan & Analisis AI';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentChartBar;
 
-    protected static ?int $navigationSort = 35;
+    protected static ?int $navigationSort = 1;
 
     protected string $view = 'filament.pages.financial-report-page';
 
@@ -78,7 +113,7 @@ class FinancialReportPage extends Page
      */
     public function getReportData(): array
     {
-        $userId = auth()->id();
+        $userId = \App\Support\TenantContext::getActiveTenantId() ?? auth()->id();
         $start = Carbon::parse($this->startDate)->startOfDay();
         $end = Carbon::parse($this->endDate)->endOfDay();
 

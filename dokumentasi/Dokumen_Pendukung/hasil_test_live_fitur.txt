@@ -1,0 +1,178 @@
+==============================================================================
+PENGUJIAN LANGSUNG FITUR ML (DECISION TREE) & AI (LLM)
+Waktu uji : 2026-10-31 09:12:02
+PHP       : 8.5.11
+==============================================================================
+
+[A] EVALUASI MODEL DECISION TREE TERSIMPAN PADA 1000 DATA UJI BARU
+Jumlah data uji     : 1000
+Prediksi benar      : 964
+Akurasi             : 96.40%
+Waktu inferensi     : 7.0 ms total (0.007 ms / sampel)
+
+Confusion Matrix (baris = label asli, kolom = prediksi):
+                        Sehat  Perlu perhatian   Berisiko
+Sehat                     150                6          0
+Perlu perhatian            15              279          5
+Berisiko                    0               10        535
+
+Kelas               Precision     Recall   F1-Score  Support
+Sehat                  90.91%     96.15%     93.46%      156
+Perlu perhatian        94.58%     93.31%     93.94%      299
+Berisiko               99.07%     98.17%     98.62%      545
+
+==============================================================================
+[B] UJI FITUR PREDIKSI (FinancialDecisionTreeService::predict)
+
+Skenario 1 - Usaha sehat
+  Input     : pemasukan Rp 25.000.000 | pengeluaran Rp 15.000.000 | rasio 0.60 | tren omzet +12% | tren kas +8%
+  Harapan   : Sehat
+  Prediksi  : Sehat (confidence 96.33%)  => LULUS
+  Probabilitas: Perlu perhatian=3%, Berisiko=0.7%, Sehat=96.3%
+   - Arus kas operasional positif (surplus Rp 10.000.000)
+   - Rasio pengeluaran efisien (60%), menyisakan margin kas yang sehat
+
+Skenario 2 - Margin tipis
+  Input     : pemasukan Rp 20.000.000 | pengeluaran Rp 17.000.000 | rasio 0.85 | tren omzet -5% | tren kas -15%
+  Harapan   : Perlu perhatian
+  Prediksi  : Perlu perhatian (confidence 98.67%)  => LULUS
+  Probabilitas: Perlu perhatian=98.7%, Berisiko=0.7%, Sehat=0.7%
+   - Arus kas operasional positif (surplus Rp 3.000.000)
+   - Rasio pengeluaran moderat (85%), ruang cadangan kas terbatas
+
+Skenario 3 - Defisit
+  Input     : pemasukan Rp 12.000.000 | pengeluaran Rp 15.000.000 | rasio 1.25 | tren omzet -30% | tren kas -50%
+  Harapan   : Berisiko
+  Prediksi  : Berisiko (confidence 98.67%)  => LULUS
+  Probabilitas: Perlu perhatian=0.7%, Berisiko=98.7%, Sehat=0.7%
+   - Arus kas operasional negatif (defisit Rp 3.000.000)
+   - Rasio pengeluaran tinggi (125%), menyerap hampir seluruh atau melebihi pemasukan
+   - Penurunan omzet pemasukan sebesar 30% dibanding periode sebelumnya
+   - Penurunan arus kas bersih sebesar 50%
+
+==============================================================================
+[C] UJI FITUR PENJELASAN AI (GroqExplanationService::explain) - PANGGILAN API ASLI
+
+Model: llama-3.3-70b-versatile | Skenario 1 - Usaha sehat | waktu respon 0.30 detik
+  Provider : rule_based_fallback (API Groq tidak merespons (Status: 404))
+  [GAGAL] Status success (bukan fallback)
+  [LULUS] Output JSON berisi explanation
+  [LULUS] Rekomendasi >= 3 poin
+  [LULUS] Label model tidak diubah
+  [LULUS] Angka arus kas sesuai data
+  Penjelasan:
+    Berdasarkan evaluasi algoritma Decision Tree, kondisi keuangan Warung Kopi Sejahtera pada periode
+    ini tergolong SEHAT. Usaha berhasil mencatatkan surplus arus kas bersih sebesar Rp 10.000.000 dengan
+    rasio pengeluaran yang terkontrol sebesar 60% dari total pemasukan Rp 25.000.000. Efisiensi
+    operasional ini memberikan ruang likuiditas yang sangat baik bagi kelangsungan usaha.
+  Rekomendasi:
+    1. Pertahankan efisiensi belanja bahan baku dan biaya operasional yang sedang berjalan.
+    2. Alokasikan sebagian surplus arus kas bersih ke rekening cadangan dana darurat (kas darurat operasional 3-6 bulan).
+    3. Pertimbangkan untuk reinvestasi terkontrol guna menambah stok produk terlaris atau ekspansi pemasaran.
+
+Model: llama-3.3-70b-versatile | Skenario 2 - Margin tipis | waktu respon 0.17 detik
+  Provider : rule_based_fallback (API Groq tidak merespons (Status: 404))
+  [GAGAL] Status success (bukan fallback)
+  [LULUS] Output JSON berisi explanation
+  [LULUS] Rekomendasi >= 3 poin
+  [LULUS] Label model tidak diubah
+  [LULUS] Angka arus kas sesuai data
+  Penjelasan:
+    Algoritma Decision Tree mengklasifikasikan kondisi keuangan Warung Kopi Sejahtera pada status PERLU
+    PERHATIAN. Meskipun usaha masih mampu menghasilkan arus kas bersih sebesar Rp 3.000.000, porsi
+    pengeluaran telah mencapai 85% dari pemasukan. Ruang margin kas relatif sempit sehingga usaha rentan
+    apabila terjadi penurunan omzet tak terduga.
+  Rekomendasi:
+    1. Audit pos-pos pengeluaran terbesar pada bulan ini dan cari peluang efisiensi biaya yang bersifat non-esensial.
+    2. Tingkatkan aktivitas promosi atau penjualan paket bundling untuk mendongkrak pemasukan kotor.
+    3. Batasi pengeluaran modal baru hingga rasio pengeluaran stabil di bawah 75%.
+
+Model: llama-3.3-70b-versatile | Skenario 3 - Defisit | waktu respon 0.24 detik
+  Provider : rule_based_fallback (API Groq tidak merespons (Status: 404))
+  [GAGAL] Status success (bukan fallback)
+  [LULUS] Output JSON berisi explanation
+  [LULUS] Rekomendasi >= 3 poin
+  [LULUS] Label model tidak diubah
+  [LULUS] Angka arus kas sesuai data
+  Penjelasan:
+    Peringatan dini dari algoritma Decision Tree: kondisi keuangan Warung Kopi Sejahtera berada dalam
+    kategori BERISIKO. Usaha mencatat beban pengeluaran (Rp 15.000.000) yang sangat tinggi hingga
+    menyerap 125% dari pemasukan, dengan posisi arus kas bersih berada di level Rp -3.000.000. Langkah
+    pemulihan arus kas harus segera diprioritaskan.
+  Rekomendasi:
+    1. Segera lakukan moratorium (penundaan) terhadap seluruh belanja dan pengeluaran yang tidak bersentuhan langsung dengan penjualan.
+    2. Fokuskan seluruh upaya pada pencairan piutang dan akselerasi penjualan produk dengan perputaran kas cepat (fast-moving).
+    3. Evaluasi ulang penetapan harga jual produk (HPP) untuk memastikan margin kotor dapat menutup biaya operasional bulanan.
+
+Model: openai/gpt-oss-20b | Skenario 1 - Usaha sehat | waktu respon 1.03 detik
+  Provider : groq
+  [LULUS] Status success (bukan fallback)
+  [LULUS] Output JSON berisi explanation
+  [LULUS] Rekomendasi >= 3 poin
+  [LULUS] Label model tidak diubah
+  [LULUS] Angka arus kas sesuai data
+  Penjelasan:
+    Warung Kopi Sejahtera dinilai ‘Sehat’ oleh model Decision Tree karena tiga indikator utama yang
+    kuat: arus kas operasional bersih positif sebesar Rp10.000.000, rasio pengeluaran yang efisien pada
+    60%, dan peningkatan pemasukan sebesar 12%. Model menilai bahwa surplus kas ini menunjukkan
+    kemampuan usaha untuk menutupi biaya operasional sekaligus menambah cadangan, sedangkan rasio
+    pengeluaran yang terkontrol menandakan pengelolaan biaya yang baik. Kombinasi ketiga faktor ini
+    memberi kepercayaan tinggi (0.9633) bahwa usaha berada dalam kondisi finansial yang stabil dan
+    berpotensi tumbuh.
+
+Dengan label ‘Sehat’, Anda dapat memanfaatkan posisi keuangan ini untuk
+    memperluas layanan, meningkatkan kualitas produk, atau menyiapkan dana darurat. Namun, tetap penting
+    untuk memantau tren pemasukan dan pengeluaran agar tidak terjadi penurunan yang signifikan di masa
+    depan.
+
+  Rekomendasi:
+    1. Tingkatkan pemasaran digital untuk memanfaatkan tren peningkatan pemasukan 12% dan menarik pelanggan baru.
+    2. Pertimbangkan investasi kecil pada peralatan kopi atau pelatihan barista untuk meningkatkan kualitas layanan dan mempertahankan rasio pengeluaran efisien.
+    3. Buat rencana cadangan dana darurat minimal 3 bulan pengeluaran operasional untuk mengantisipasi fluktuasi pasar atau kebutuhan mendesak.
+
+Model: openai/gpt-oss-20b | Skenario 2 - Margin tipis | waktu respon 0.99 detik
+  Provider : groq
+  [LULUS] Status success (bukan fallback)
+  [LULUS] Output JSON berisi explanation
+  [LULUS] Rekomendasi >= 3 poin
+  [LULUS] Label model tidak diubah
+  [LULUS] Angka arus kas sesuai data
+  Penjelasan:
+    Model Decision Tree menilai Warung Kopi Sejahtera perlu perhatian karena meskipun arus kas
+    operasional bersih positif sebesar Rp 3.000.000, rasio pengeluaran masih tinggi (85%) dan cadangan
+    kas terbatas. Selain itu, tren pemasukan menurun 5 %, yang menandakan potensi tekanan pada
+    likuiditas di masa depan. Kombinasi ketiga faktor ini membuat model menandai usaha ini sebagai area
+    yang memerlukan pemantauan dan tindakan proaktif.
+  Rekomendasi:
+    1. Tingkatkan cadangan kas dengan menabung sebagian arus kas bersih setiap bulan dan pertimbangkan membuka rekening cadangan khusus. 
+    2. Evaluasi kembali struktur biaya, fokus pada pengeluaran yang dapat dipangkas atau dioptimalkan, misalnya dengan negosiasi harga bahan baku atau efisiensi operasional. 
+    3. Kembangkan strategi pertumbuhan pendapatan, seperti memperkenalkan menu baru, promosi musiman, atau layanan antar, untuk mengatasi penurunan pemasukan dan meningkatkan margin.
+
+Model: openai/gpt-oss-20b | Skenario 3 - Defisit | waktu respon 1.13 detik
+  Provider : groq
+  [LULUS] Status success (bukan fallback)
+  [LULUS] Output JSON berisi explanation
+  [LULUS] Rekomendasi >= 3 poin
+  [LULUS] Label model tidak diubah
+  [GAGAL] Angka arus kas sesuai data
+  Penjelasan:
+    Model Decision Tree menilai Warung Kopi Sejahtera berisiko karena beberapa indikator keuangan yang
+    kritis. Arus kas operasional negatif sebesar Rp 3 000 000 menunjukkan bahwa pengeluaran
+    melebihi pemasukan, sementara rasio pengeluaran 125 % berarti hampir seluruh pendapatan (atau
+    lebih) digunakan untuk biaya. Selain itu, penurunan omzet sebesar 30 % dibanding periode
+    sebelumnya dan penurunan arus kas bersih sebesar 50 % menambah ketidakpastian. Kombinasi ketiga
+    faktor ini memicu model untuk memberi label ‘Berisiko’ dengan akurasi 0,9867, menandakan risiko
+    tinggi jika tidak segera ditangani.
+  Rekomendasi:
+    1. Tinjau dan kurangi pengeluaran tetap serta variabel yang tidak produktif, misalnya renegosiasi kontrak sewa atau penghematan bahan baku.
+    2. Kembangkan strategi pemasaran dan diversifikasi menu untuk meningkatkan omzet, seperti promo diskon, penawaran paket, atau kolaborasi dengan platform delivery.
+    3. Perbaiki manajemen kas dengan memantau arus masuk dan keluar secara real‑time, pertimbangkan pinjaman jangka pendek atau kredit usaha mikro untuk menutupi defisit sementara dan menstabilkan arus kas.
+
+==============================================================================
+[D] UJI KETAHANAN - API KEY TIDAK VALID (harus fallback, aplikasi tetap jalan)
+  Status   : fallback
+  Provider : rule_based_fallback (API Groq tidak merespons (Status: 401))
+  [LULUS] Sistem tetap mengembalikan penjelasan & 3 rekomendasi
+
+==============================================================================
+SELESAI
